@@ -10,7 +10,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 app.use(cors());
-app.use(express.static("public")); // Serve frontend files
+app.use(express.static(path.join(__dirname, "../public"))); // Serve frontend files
 
 const SCORE_FILE = path.join(__dirname, "userdetailsscore.json");
 
@@ -134,8 +134,18 @@ function broadcastLeaderboard(leaderboard) {
     });
 }
 
+// Serve dashboard.html
+app.get("/dashboard.html", (req, res) => {
+    res.sendFile(path.join(__dirname, "../public/dashboard.html"));
+});
+
+// Serve index.html for root
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "../public/index.html"));
+});
+
 // Start Server
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
-    console.log(`🚀 WebSocket server running on port ${PORT}`);
+    console.log(`🚀 WebSocket server running on http://localhost:${PORT}`);
 });
