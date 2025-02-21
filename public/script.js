@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const ws = new WebSocket("ws://localhost:8080"); // WebSocket Connection
+    const ws = new WebSocket("ws://block-blaster.onrender.com/"); // WebSocket Connection
 
     // UI Elements
     const playerEntry = document.getElementById("playerEntry");
@@ -29,8 +29,9 @@ document.addEventListener("DOMContentLoaded", function () {
     let playerName = "";
     let playerId = "";
     let gameInterval;
-    let leaderboardData = [];
+    let gameActive = false; // Track if the game is active
 
+    // Draw the game grid and placed blocks
     function drawGrid() {
         ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
         ctx.strokeStyle = "#555";
@@ -51,19 +52,21 @@ document.addEventListener("DOMContentLoaded", function () {
         drawBlocks();
     }
 
+    // Draw placed blocks on the canvas
     function drawBlocks() {
         placedBlocks.forEach(block => {
-            ctx.fillStyle = "#FFD700";
+            ctx.fillStyle = "#FFD700"; // Block color
             ctx.fillRect(block.x, block.y, blockSize, blockSize);
             ctx.strokeRect(block.x, block.y, blockSize, blockSize);
         });
     }
 
+    // Start the game
     function startGame() {
         playerName = document.getElementById("playerName").value.trim();
         playerId = document.getElementById("playerId").value.trim();
 
-        if (playerName === "" || playerId === "") {
+        if (!playerName || !playerId) {
             alert("Please enter your name and Q.ID!");
             return;
         }
@@ -82,13 +85,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
         drawGrid();
         startTimer();
+        gameActive = true; // Set game active when starting
     }
 
+    // Quit the game
     function quitGame() {
         alert("You have exited the game.");
         window.location.href = "about:blank";
     }
 
+    // Start the countdown timer
     function startTimer() {
         timer = 60;
         timerDisplay.innerText = timer;
@@ -104,9 +110,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 1000);
     }
 
+    // End the game and update the score
     function endGame() {
+        gameActive = false; // Set game inactive when ending
         alert("Game Over! Your Score: " + score);
 
+        // Send score update to server
         ws.send(JSON.stringify({
             type: "updateScore",
             name: playerName,
@@ -117,6 +126,7 @@ document.addEventListener("DOMContentLoaded", function () {
         resetGame();
     }
 
+    // Reset the game state
     function resetGame() {
         score = 0;
         placedBlocks = [];
@@ -126,23 +136,34 @@ document.addEventListener("DOMContentLoaded", function () {
         drawGrid();
     }
 
+    // Check if a position is occupied
     function isOccupied(x, y) {
         return placedBlocks.some(block => block.x === x && block.y === y);
     }
 
+    // Generate random points for scoring
+    function generateRandomPoints() {
+        return Math.floor(Math.random() * 20) + 1; // Random points between 1 and 20
+    }
+
+    // Place a block on the grid
     function placeBlock(shape, x, y) {
-        if (!isOccupied(x, y)) {
+        if (!isOccupied(x, y) && gameActive) { // Only allow placing blocks if the game is active
             placedBlocks.push({ shape, x, y });
             placeSound.play();
-            score += 10;
+            const randomPoints = generateRandomPoints();
+            score += randomPoints; // Increase score with random points
             scoreDisplay.innerText = score;
             drawGrid();
             checkForCompletedLines();
+        } else if (!gameActive) {
+            alert("Time is up! Cannot place more blocks.");
         } else {
             alert("Position occupied! Try another spot.");
         }
     }
 
+    // Check for completed lines in the grid
     function checkForCompletedLines() {
         let rowCount = Array(gridSize).fill(0);
         let colCount = Array(gridSize).fill(0);
@@ -162,6 +183,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // Blast blocks from completed lines
     function blastBlocks(rows, cols) {
         blastSound.play();
 
@@ -178,39 +200,52 @@ document.addEventListener("DOMContentLoaded", function () {
         drawGrid();
     }
 
+    // WebSocket message handling
     ws.onmessage = function (event) {
         const data = JSON.parse(event.data);
-
-        if (data.type === "leaderboardUpdate") {
-            updateLeaderboard(data.leaderboard);
+    
+        if (data.type === "leaderboard") {
+            updateLeaderboard(data.leaderboard); // Update leaderboard function
         }
     };
-
+    
+    // Update the leaderboard display
     function updateLeaderboard(newData) {
-        let previousLeaderboard = [...leaderboardData];
-        leaderboardData = newData;
-
-        leaderboardList.innerHTML = "";
-
-        leaderboardData.forEach((player, index) => {
-            let previousIndex = previousLeaderboard.findIndex(p => p.qid === player.qid);
-            let isPositionChanged = previousIndex !== index && previousIndex !== -1;
-
-            let listItem = document.createElement("li");
-            listItem.innerHTML = `#${index + 1} <strong>${player.name}</strong> - ${player.score}`;
-            listItem.className = "transition-all ease-in-out duration-500 p-2";
-
-            if (isPositionChanged) {
-                listItem.classList.add("bg-yellow-500", "text-black", "rounded", "font-bold");
-                setTimeout(() => {
-                    listItem.classList.remove("bg-yellow-500", "text-black", "font-bold");
-                }, 3000);
-            }
-
-            leaderboardList.appendChild(listItem);
+        leaderboardList.innerHTML = ""; // Clear previous entries
+    
+        newData.forEach((player, index) => {
+            const row = document.createElement("tr");
+            row.className = "leaderboard-row"; // Add class for animation
+    
+            // Create cells for position, name, and score
+            const positionCell = document.createElement("td");
+            positionCell.className = "py-2 px-4"; // Styling for position cell
+            positionCell.textContent = player.position;
+    
+            const nameCell = document.createElement("td");
+            nameCell.className = "py-2 px-4"; // Styling for name cell
+            nameCell.innerHTML = `<strong>${player.name}</strong>`;
+    
+            const scoreCell = document.createElement("td");
+            scoreCell.className = "py-2 px-4"; // Styling for score cell
+            scoreCell.textContent = player.score;
+    
+            // Append cells to the row
+            row.appendChild(positionCell);
+            row.appendChild(nameCell);
+            row.appendChild(scoreCell);
+    
+            // Append row to the leaderboard table body
+            leaderboardList.appendChild(row);
+    
+            // Trigger the animation
+            setTimeout(() => {
+                row.classList.add("visible");
+            }, 0); // Use a timeout to ensure the row is in the DOM before adding the class
         });
     }
 
+    // Drag and drop functionality for blocks
     const blocks = document.querySelectorAll(".block");
 
     blocks.forEach(block => {
@@ -220,7 +255,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     gameCanvas.addEventListener("dragover", function (e) {
-        e.preventDefault();
+        e.preventDefault(); // Allow drop
     });
 
     gameCanvas.addEventListener("drop", function (e) {
@@ -233,6 +268,7 @@ document.addEventListener("DOMContentLoaded", function () {
         placeBlock(shape, x, y);
     });
 
+    // Event listeners for buttons
     startButton.addEventListener("click", startGame);
     quitButton.addEventListener("click", quitGame);
 });

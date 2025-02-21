@@ -4,15 +4,16 @@ const http = require("http");
 const fs = require("fs").promises;
 const path = require("path");
 const cors = require("cors");
+require("dotenv").config(); // Load environment variables
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 // Middleware setup
-app.use(cors()); // Allow cross-origin requests
-app.use(express.json()); // Parse JSON requests
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded requests
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from public folder
 app.use(express.static(path.join(__dirname, "..", "public")));
@@ -23,7 +24,7 @@ const SCORE_FILE = path.join(__dirname, "userdetailsscore.json");
 async function ensureScoreFile() {
     try {
         await fs.access(SCORE_FILE);
-    } catch (error) {
+    } catch {
         console.log("⚠ Creating new userdetailsscore.json file...");
         await fs.writeFile(SCORE_FILE, JSON.stringify([]), "utf8");
     }
@@ -37,7 +38,7 @@ async function loadLeaderboard() {
         return JSON.parse(data);
     } catch (error) {
         console.error("❌ Error reading leaderboard file:", error);
-        return [];
+        throw new Error("Failed to load leaderboard");
     }
 }
 
@@ -47,68 +48,81 @@ async function saveLeaderboard(leaderboard) {
         await fs.writeFile(SCORE_FILE, JSON.stringify(leaderboard, null, 2), "utf8");
     } catch (error) {
         console.error("❌ Error saving leaderboard:", error);
+        throw new Error("Failed to save leaderboard");
     }
 }
 
 // WebSocket Connection Handler
 wss.on("connection", async (ws) => {
     console.log("✅ New WebSocket connection");
+    try {
+        const leaderboard = await loadLeaderboard();
+        ws.send(JSON.stringify({ type: "leaderboard", leaderboard: addPositions(leaderboard) }));
 
-    let leaderboard = await loadLeaderboard();
-    leaderboard = addPositions(leaderboard);
-    ws.send(JSON.stringify({ type: "leaderboard", leaderboard }));
-
-    ws.on("message", async (message) => {
-        try {
-            const data = JSON.parse(message);
-
-            if (data.type === "registerPlayer") {
-                leaderboard = await registerPlayer(data.name, data.qid);
-                ws.send(JSON.stringify({ type: "registered", success: true, leaderboard }));
+        ws.on("message", async (message) => {
+            try {
+                const data = JSON.parse(message);
+                await handleWebSocketMessage(data, ws);
+            } catch (error) {
+                console.error("❌ Error processing message:", error);
+                ws.send(JSON.stringify({ type: "error", message: "Invalid message format." }));
             }
-
-            if (data.type === "updateScore") {
-                leaderboard = await updateLeaderboard(data.name, data.qid, data.score);
-                broadcastLeaderboard(leaderboard);
-            }
-        } catch (error) {
-            console.error("❌ Error processing message:", error);
-        }
-    });
+        });
+    } catch (error) {
+        console.error("❌ Error during connection:", error);
+        ws.send(JSON.stringify({ type: "error", message: "Failed to load leaderboard." }));
+    }
 
     ws.on("close", () => console.log("❌ WebSocket disconnected"));
     ws.on("error", (error) => console.error("⚠ WebSocket error:", error));
 });
 
+// Handle WebSocket messages
+async function handleWebSocketMessage(data, ws) {
+    if (data.type === "registerPlayer") {
+        const leaderboard = await registerPlayer(data.name, data.qid);
+        ws.send(JSON.stringify({ type: "registered", success: true, leaderboard }));
+        broadcastLeaderboard(leaderboard);
+    } else if (data.type === "updateScore") {
+        const leaderboard = await updateLeaderboard(data.name, data.qid, data.score);
+        broadcastLeaderboard(leaderboard);
+    }
+}
+
 // Register new player
 async function registerPlayer(playerName, playerId) {
-    let leaderboard = await loadLeaderboard();
-    let player = leaderboard.find((p) => p.qid === playerId);
-
-    if (!player) {
-        leaderboard.push({ name: playerName, qid: playerId, score: 0 });
-        leaderboard = addPositions(leaderboard);
-        await saveLeaderboard(leaderboard);
+    if (!playerName || !playerId) {
+        throw new Error("Invalid player registration data.");
     }
 
+    let leaderboard = await loadLeaderboard();
+    if (!leaderboard.some((p) => p.qid === playerId)) {
+        leaderboard.push({ name: playerName, qid: playerId, score: 0 });
+        await saveLeaderboard(leaderboard);
+        console.log(`Player registered: ${playerName}, ID: ${playerId}`);
+    }
     return leaderboard;
 }
 
 // Update player score
 async function updateLeaderboard(playerName, playerId, newScore) {
+    if (!playerName || !playerId || isNaN(newScore)) {
+        throw new Error("Invalid score update data.");
+    }
+
     let leaderboard = await loadLeaderboard();
     let player = leaderboard.find((p) => p.qid === playerId);
 
     if (player) {
         player.score = Math.max(player.score, newScore);
+        console.log(`Updated score for ${playerName}: ${newScore}`);
     } else {
         leaderboard.push({ name: playerName, qid: playerId, score: newScore });
+        console.log(`Player score added: ${playerName}, Score: ${newScore}`);
     }
 
     leaderboard.sort((a, b) => b.score - a.score);
-    leaderboard = addPositions(leaderboard);
     await saveLeaderboard(leaderboard);
-
     return leaderboard;
 }
 
@@ -122,10 +136,10 @@ function addPositions(leaderboard) {
 
 // Broadcast leaderboard to all players
 function broadcastLeaderboard(leaderboard) {
-    leaderboard = addPositions(leaderboard);
+    const updatedLeaderboard = addPositions(leaderboard);
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: "leaderboard", leaderboard }));
+            client.send(JSON.stringify({ type: "leaderboard", leaderboard: updatedLeaderboard }));
         }
     });
 }
@@ -146,7 +160,6 @@ app.post("/add-score", async (req, res) => {
     try {
         const { name, qid, score } = req.body;
 
-        // Validate input data
         if (!name || !qid || isNaN(score)) {
             return res.status(400).json({ error: "Invalid input data" });
         }

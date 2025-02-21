@@ -5,6 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Block Blast Game</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .block {
+            cursor: grab;
+            user-select: none; /* Prevent text selection on drag */
+            transition: transform 0.2s ease; /* Add transition for smooth dragging */
+        }
+
+        .block:active {
+            cursor: grabbing;
+            transform: scale(1.1); /* Slightly enlarge the block on grab */
+        }
+
+        /* Leaderboard Animation */
+        .leaderboard-row {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .leaderboard-row.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 600px) {
+            #gameCanvas {
+                width: 100%;
+                height: auto;
+            }
+            .button {
+                width: 100%;
+                font-size: 1.2em;
+            }
+            /* Increase button size for mobile */
+            .block {
+                font-size: 1.5em;
+                padding: 1em;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center p-4">
 
@@ -19,41 +64,55 @@
 
         <button id="startButton" class="mt-4 w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-500">Start Game</button>
         <button id="quitButton" class="mt-2 w-full bg-red-600 text-white p-2 rounded hover:bg-red-500">Quit</button>
-        <button id="leaderboardButton" class="mt-2 w-full bg-gray-600 text-white p-2 rounded hover:bg-gray-500"><a href="https://block-blaster.onrender.com/dashboard" target="_blank">View LeaderBoard</a> </button>
+        <button id="leaderboardButton" class="mt-2 w-full bg-gray-600 text-white p-2 rounded hover:bg-gray-500">
+            <a href="https://block-blaster.onrender.com/dashboard" target="_blank">View LeaderBoard</a>
+        </button>
     </div>
 
     <!-- Main Game Section -->
     <div id="gameContainer" class="hidden text-center w-full max-w-2xl">
-        <h1 class="text-3xl font-bold mt-4">Block Blast Game</h1>
+        <h1 class="text-3xl font-bold mt-4">Mind Luster Game</h1>
 
         <div class="flex flex-col md:flex-row justify-between items-center mt-4 p-3 bg-gray-700 rounded">
             <div class="text-lg">⏳ Time Left: <span id="timer">60</span> sec</div>
             <div>Score: <span id="score">0</span></div>
-            <div class="text-sm md:text-lg">Player: <span id="playerDisplay"></span> | Q.ID: <span id="playerIdDisplay"></span></div>
+            <div class="text-sm md:text-lg">Player Name: <span id="playerDisplay"></span> | Q.ID: <span id="playerIdDisplay"></span></div>
         </div>
 
         <!-- Game Grid (8x8 Grid) -->
         <div class="relative mt-6 flex justify-center">
-            <canvas id="gameCanvas" class="border bg-gray-800 w-full max-w-xs md:max-w-xl" height="200"></canvas>
+            <canvas id="gameCanvas" class="border bg-gray-800" height="400" width="400"></canvas>
         </div>
 
         <!-- Block Container (8x8 Grid Layout) -->
         <div class="grid grid-cols-4 md:grid-cols-8 gap-1 mt-6 p-4 bg-gray-700 rounded shadow-lg">
             <h2 class="col-span-4 md:col-span-8 text-lg font-semibold text-center">Drag & Drop Blocks</h2>
             <!-- Blocks -->
-            <div class="block bg-yellow-400 p-3 text-center" draggable="true" data-shape="O">O</div>
-            <div class="block bg-orange-500 p-3 text-center" draggable="true" data-shape="L">L</div>
-            <div class="block bg-purple-600 p-3 text-center" draggable="true" data-shape="T">T</div>
-            <div class="block bg-cyan-400 p-3 text-center" draggable="true" data-shape="I">I</div>
-            <div class="block bg-red-500 p-3 text-center" draggable="true" data-shape="Z">Z</div>
-            <div class="block bg-green-500 p-3 text-center" draggable="true" data-shape="S">S</div>
-            <div class="block bg-blue-600 p-3 text-center" draggable="true" data-shape="J">J</div>
+            <div class="block bg-yellow-400 p-3 text-center" draggable="true" data-shape="O">U</div>
+            <div class="block bg-orange-500 p-3 text-center" draggable="true" data-shape="L">H</div>
+            <div class="block bg-purple-600 p-3 text-center" draggable="true" data-shape="T">H</div>
+            <div class="block bg-cyan-400 p-3 text-center" draggable="true" data-shape="I">M</div>
+            <div class="block bg-red-500 p-3 text-center" draggable="true" data-shape="Z">B</div>
+            <div class="block bg-green-500 p-3 text-center" draggable="true" data-shape="S">A</div>
+            <div class="block bg-blue-600 p-3 text-center" draggable="true" data-shape="J">S</div>
         </div>
 
         <!-- Leaderboard -->
         <div class="mt-6 p-4 bg-gray-700 rounded shadow-lg">
-            <h2 class="text-lg font-semibold">🏆 Leaderboard</h2>
-            <ul id="leaderboard-list" class="list-disc pl-5"></ul>
+            <h2 class="text-lg font-semibold">🏆 LeaderBoard</h2>
+            <table class="min-w-full mt-2 bg-gray-800 border border-gray-600">
+                <thead>
+                    <tr class="bg-gray-600">
+                        <th class="py-2 px-4 text-left">Position</th>
+                        <th class="py-2 px-4 text-left">Player Name</th>
+                        <th class="py-2 px-4 text-left">Score</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-list" class="divide-y divide-gray-600">
+                    <!-- Leaderboard entries will be inserted here dynamically -->
+                </tbody>
+            </table>
+            <button id="refreshLeaderboard" class="mt-4 w-full bg-green-600 text-white p-2 rounded hover:bg-green-500">Refresh Leaderboard</button>
         </div>
 
         <audio id="placeSound" src="audio/place.mp3"></audio>
@@ -61,5 +120,66 @@
     </div>
 
     <script src="script.js"></script>
+    <script>
+        const ws = new WebSocket("ws://block-blaster.onrender.com/"); // Adjust according to your server
+        let timerInterval;
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+
+            if (data.type === "leaderboard") {
+                updateLeaderboard(data.leaderboard);
+            }
+        };
+
+        function startTimer(duration) {
+            let timer = duration;
+            const timerDisplay = document.getElementById("timer");
+            
+            timerInterval = setInterval(() => {
+                if (timer <= 0) {
+                    clearInterval(timerInterval);
+                    alert("Time is up!"); // Notify player when time is up
+                    // Optional: Disable game interaction or reset state
+                    return; // Stay on the same page
+                }
+                timerDisplay.textContent = --timer;
+            }, 1000);
+        }
+
+        function updateLeaderboard(leaderboard) {
+            const leaderboardList = document.getElementById("leaderboard-list");
+            leaderboardList.innerHTML = ""; // Clear existing entries
+
+            leaderboard.forEach((player) => {
+                const row = document.createElement("tr");
+                row.classList.add("leaderboard-row");
+                row.innerHTML = `
+                    <td class="py-2 px-4">${player.position}</td>
+                    <td class="py-2 px-4">${player.name}</td>
+                    <td class="py-2 px-4">${player.score}</td>
+                `;
+                leaderboardList.appendChild(row);
+                
+                // Trigger visibility animation
+                setTimeout(() => {
+                    row.classList.add("visible");
+                }, 50);
+            });
+        }
+
+        document.getElementById("refreshLeaderboard").addEventListener("click", () => {
+            // Fetch the leaderboard data again from the server
+            ws.send(JSON.stringify({ type: "requestLeaderboard" }));
+        });
+
+        // Add touch event listeners for mobile support
+        document.querySelectorAll('.block').forEach(block => {
+            block.addEventListener('touchstart', function(e) {
+                e.preventDefault(); // Prevent default touch behavior
+                this.dispatchEvent(new Event('dragstart'));
+            });
+        });
+    </script>
 </body>
 </html>
