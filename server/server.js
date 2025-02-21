@@ -49,6 +49,7 @@ wss.on("connection", async (ws) => {
     console.log("✅ New player connected");
 
     let leaderboard = await loadLeaderboard();
+    leaderboard = addPositions(leaderboard);
 
     // Send the current leaderboard to the new player
     ws.send(JSON.stringify({ type: "leaderboard", leaderboard }));
@@ -60,7 +61,7 @@ wss.on("connection", async (ws) => {
 
             if (data.type === "registerPlayer") {
                 leaderboard = await registerPlayer(data.name, data.qid);
-                ws.send(JSON.stringify({ type: "registered", success: true }));
+                ws.send(JSON.stringify({ type: "registered", success: true, leaderboard }));
             }
 
             if (data.type === "updateScore") {
@@ -89,6 +90,7 @@ async function registerPlayer(playerName, playerId) {
 
     if (!player) {
         leaderboard.push({ name: playerName, qid: playerId, score: 0 });
+        leaderboard = addPositions(leaderboard);
         await saveLeaderboard(leaderboard);
     }
 
@@ -108,13 +110,23 @@ async function updateLeaderboard(playerName, playerId, newScore) {
     }
 
     leaderboard.sort((a, b) => b.score - a.score);
+    leaderboard = addPositions(leaderboard);
     await saveLeaderboard(leaderboard);
 
     return leaderboard;
 }
 
+// Assign Positions
+function addPositions(leaderboard) {
+    return leaderboard.map((player, index) => ({
+        ...player,
+        position: index + 1
+    }));
+}
+
 // Broadcast leaderboard to all players
 function broadcastLeaderboard(leaderboard) {
+    leaderboard = addPositions(leaderboard);
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify({ type: "leaderboard", leaderboard }));
