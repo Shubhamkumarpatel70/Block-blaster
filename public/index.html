@@ -9,7 +9,7 @@
 <body class="bg-gray-900 text-white flex flex-col items-center p-4">
 
     <!-- Player Entry Screen -->
-    <div id="playerEntry" class="bg-gray-800 p-6 rounded-lg shadow-lg w-96 text-center">
+    <div id="playerEntry" class="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-xs text-center">
         <h1 class="text-2xl font-bold">Enter Game Details</h1>
         <label class="block mt-3">Enter Player Name:</label>
         <input type="text" id="playerName" class="w-full p-2 rounded text-black" placeholder="Your Name">
@@ -17,28 +17,29 @@
         <label class="block mt-3">Enter Q.ID:</label>
         <input type="text" id="playerId" class="w-full p-2 rounded text-black" placeholder="Your Q.ID">
 
-        <button id="startButton" class="mt-4 w-full bg-blue-600 text-white p-2 rounded">Start Game</button>
-        <button id="quitButton" class="mt-2 w-full bg-red-600 text-white p-2 rounded">Quit</button>
+        <button id="startButton" class="mt-4 w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-500">Start Game</button>
+        <button id="quitButton" class="mt-2 w-full bg-red-600 text-white p-2 rounded hover:bg-red-500">Quit</button>
+        <button id="leaderboardButton" class="mt-2 w-full bg-gray-600 text-white p-2 rounded hover:bg-gray-500"><a href="http://localhost:8080/dashboard" target="_blank">View LeaderBoard</a> </button>
     </div>
 
     <!-- Main Game Section -->
     <div id="gameContainer" class="hidden text-center w-full max-w-2xl">
         <h1 class="text-3xl font-bold mt-4">Block Blast Game</h1>
 
-        <div class="flex justify-between items-center mt-4 p-3 bg-gray-700 rounded">
+        <div class="flex flex-col md:flex-row justify-between items-center mt-4 p-3 bg-gray-700 rounded">
             <div class="text-lg">⏳ Time Left: <span id="timer">60</span> sec</div>
             <div>Score: <span id="score">0</span></div>
-            <div>Player: <span id="playerDisplay"></span> | Q.ID: <span id="playerIdDisplay"></span></div>
+            <div class="text-sm md:text-lg">Player: <span id="playerDisplay"></span> | Q.ID: <span id="playerIdDisplay"></span></div>
         </div>
 
         <!-- Game Grid (8x8 Grid) -->
         <div class="relative mt-6 flex justify-center">
-            <canvas id="gameCanvas" class="border bg-gray-800"></canvas>
+            <canvas id="gameCanvas" class="border bg-gray-800 w-full max-w-xs md:max-w-xl" height="200"></canvas>
         </div>
 
         <!-- Block Container (8x8 Grid Layout) -->
-        <div class="grid grid-cols-8 gap-1 mt-6 p-4 bg-gray-700 rounded shadow-lg">
-            <h2 class="col-span-8 text-lg font-semibold text-center">Drag & Drop Blocks</h2>
+        <div class="grid grid-cols-4 md:grid-cols-8 gap-1 mt-6 p-4 bg-gray-700 rounded shadow-lg">
+            <h2 class="col-span-4 md:col-span-8 text-lg font-semibold text-center">Drag & Drop Blocks</h2>
             <!-- Blocks -->
             <div class="block bg-yellow-400 p-3 text-center" draggable="true" data-shape="O">O</div>
             <div class="block bg-orange-500 p-3 text-center" draggable="true" data-shape="L">L</div>

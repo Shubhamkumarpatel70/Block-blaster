@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Score Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        h2 {
+            margin-bottom: 20px;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #218838;
+        }
+        .loading {
+            display: none;
+            margin-top: 10px;
+            color: #28a745;
+            font-size: 16px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            input, button {
+                font-size: 14px; /* Slightly smaller text on smaller screens */
+            }
+            form {
+                padding: 15px; /* Reduce padding on smaller screens */
+            }
+        }
+
+        @media (max-width: 400px) {
+            input, button {
+                font-size: 12px; /* Even smaller text for very small screens */
+            }
+            form {
+                width: 90%; /* Full width for very small screens */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Add Player Score</h2>
+    <form id="scoreForm" aria-labelledby="scoreFormTitle" role="form">
+        <h3 id="scoreFormTitle" class="visually-hidden">Player Score Submission Form</h3>
+
+        <label for="name">Name:</label>
+        <input type="text" id="name" required aria-required="true" placeholder="Enter player's name">
+
+        <label for="qid">QID:</label>
+        <input type="text" id="qid" required aria-required="true" placeholder="Enter QID">
+
+        <label for="score">Score:</label>
+        <input type="number" id="score" min="0" required aria-required="true" placeholder="Enter score">
+
+        <button type="submit">Add Score</button>
+        <p id="loading" class="loading" role="alert">Adding score...</p>
+    </form>
+
+    <script>
+        document.getElementById("scoreForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const name = document.getElementById("name").value.trim();
+            const qid = document.getElementById("qid").value.trim();
+            const score = parseInt(document.getElementById("score").value, 10);
+
+            if (!name || !qid || isNaN(score) || score < 0) {
+                alert("Please enter valid details. Score must be a non-negative number.");
+                return;
+            }
+
+            // Show loading message
+            const loadingMessage = document.getElementById("loading");
+            loadingMessage.style.display = "block";
+
+            try {
+                const response = await fetch("http://localhost:8080/add-score", {  
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, qid, score })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();  
+                    throw new Error(`Error ${response.status}: ${errorData.error || 'Failed to add score.'}`);
+                }
+
+                const data = await response.json();
+                console.log("Server response:", data);
+                alert("Player score added successfully!");
+                document.getElementById("scoreForm").reset();
+            } catch (error) {
+                console.error("Error:", error);
+                alert(error.message);
+            } finally {
+                loadingMessage.style.display = "none";  
+            }
+        });
+    </script>
+
+</body>
+</html>
