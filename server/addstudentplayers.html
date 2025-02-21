@@ -107,7 +107,7 @@
             loadingMessage.style.display = "block";
 
             try {
-                const response = await fetch("http://localhost:8080/add-score", {  
+                const response = await fetch("https://block-blaster.onrender.com/add-score", {  
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ name, qid, score })
