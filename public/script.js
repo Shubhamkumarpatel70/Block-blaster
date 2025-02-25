@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const ws = new WebSocket("ws://localhost:8080"); // WebSocket Connection
+    const ws = new WebSocket("ws://bloack-blaster.onrender.com"); // WebSocket Connection
 
     // UI Elements
     const playerEntry = document.getElementById("playerEntry");
