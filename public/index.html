@@ -121,7 +121,7 @@
     <script src="script.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const ws = new WebSocket("ws://block-blaster.onrender.com"); // Adjust according to your server
+            const ws = new WebSocket("wss://block-blaster.onrender.com"); // Adjust according to your server
 
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
