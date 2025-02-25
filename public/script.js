@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const ws = new WebSocket("ws://block-blaster.onrender.com/"); // WebSocket Connection
+    const ws = new WebSocket("ws://localhost:8080"); // WebSocket Connection
 
     // UI Elements
     const playerEntry = document.getElementById("playerEntry");
@@ -29,9 +29,9 @@ document.addEventListener("DOMContentLoaded", function () {
     let playerName = "";
     let playerId = "";
     let gameInterval;
+    let leaderboardData = [];
     let gameActive = false; // Track if the game is active
 
-    // Draw the game grid and placed blocks
     function drawGrid() {
         ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
         ctx.strokeStyle = "#555";
@@ -52,7 +52,6 @@ document.addEventListener("DOMContentLoaded", function () {
         drawBlocks();
     }
 
-    // Draw placed blocks on the canvas
     function drawBlocks() {
         placedBlocks.forEach(block => {
             ctx.fillStyle = "#FFD700"; // Block color
@@ -61,12 +60,11 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Start the game
     function startGame() {
         playerName = document.getElementById("playerName").value.trim();
         playerId = document.getElementById("playerId").value.trim();
 
-        if (!playerName || !playerId) {
+        if (playerName === "" || playerId === "") {
             alert("Please enter your name and Q.ID!");
             return;
         }
@@ -88,13 +86,11 @@ document.addEventListener("DOMContentLoaded", function () {
         gameActive = true; // Set game active when starting
     }
 
-    // Quit the game
     function quitGame() {
         alert("You have exited the game.");
         window.location.href = "about:blank";
     }
 
-    // Start the countdown timer
     function startTimer() {
         timer = 60;
         timerDisplay.innerText = timer;
@@ -110,7 +106,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 1000);
     }
 
-    // End the game and update the score
     function endGame() {
         gameActive = false; // Set game inactive when ending
         alert("Game Over! Your Score: " + score);
@@ -126,7 +121,6 @@ document.addEventListener("DOMContentLoaded", function () {
         resetGame();
     }
 
-    // Reset the game state
     function resetGame() {
         score = 0;
         placedBlocks = [];
@@ -136,17 +130,14 @@ document.addEventListener("DOMContentLoaded", function () {
         drawGrid();
     }
 
-    // Check if a position is occupied
     function isOccupied(x, y) {
         return placedBlocks.some(block => block.x === x && block.y === y);
     }
 
-    // Generate random points for scoring
     function generateRandomPoints() {
         return Math.floor(Math.random() * 20) + 1; // Random points between 1 and 20
     }
 
-    // Place a block on the grid
     function placeBlock(shape, x, y) {
         if (!isOccupied(x, y) && gameActive) { // Only allow placing blocks if the game is active
             placedBlocks.push({ shape, x, y });
@@ -163,7 +154,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Check for completed lines in the grid
     function checkForCompletedLines() {
         let rowCount = Array(gridSize).fill(0);
         let colCount = Array(gridSize).fill(0);
@@ -183,7 +173,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Blast blocks from completed lines
     function blastBlocks(rows, cols) {
         blastSound.play();
 
@@ -203,59 +192,94 @@ document.addEventListener("DOMContentLoaded", function () {
     // WebSocket message handling
     ws.onmessage = function (event) {
         const data = JSON.parse(event.data);
-    
+
         if (data.type === "leaderboard") {
             updateLeaderboard(data.leaderboard); // Update leaderboard function
         }
     };
-    
-    // Update the leaderboard display
+
     function updateLeaderboard(newData) {
         leaderboardList.innerHTML = ""; // Clear previous entries
-    
+
         newData.forEach((player, index) => {
             const row = document.createElement("tr");
             row.className = "leaderboard-row"; // Add class for animation
-    
+
             // Create cells for position, name, and score
             const positionCell = document.createElement("td");
             positionCell.className = "py-2 px-4"; // Styling for position cell
             positionCell.textContent = player.position;
-    
+
             const nameCell = document.createElement("td");
             nameCell.className = "py-2 px-4"; // Styling for name cell
             nameCell.innerHTML = `<strong>${player.name}</strong>`;
-    
+
             const scoreCell = document.createElement("td");
             scoreCell.className = "py-2 px-4"; // Styling for score cell
             scoreCell.textContent = player.score;
-    
+
             // Append cells to the row
             row.appendChild(positionCell);
             row.appendChild(nameCell);
             row.appendChild(scoreCell);
-    
+
             // Append row to the leaderboard table body
             leaderboardList.appendChild(row);
-    
+
             // Trigger the animation
             setTimeout(() => {
                 row.classList.add("visible");
-            }, 0); // Use a timeout to ensure the row is in the DOM before adding the class
+            }, 50 * index); // Use a timeout to ensure the row is in the DOM before adding the class
         });
     }
 
-    // Drag and drop functionality for blocks
     const blocks = document.querySelectorAll(".block");
 
     blocks.forEach(block => {
         block.addEventListener("dragstart", function (e) {
             e.dataTransfer.setData("shape", block.dataset.shape);
         });
+
+        // Add touch event listeners for mobile support
+        block.addEventListener('touchstart', function(e) {
+            e.preventDefault(); // Prevent default touch behavior
+            const touch = e.touches[0];
+            const event = new MouseEvent('mousedown', {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            this.dispatchEvent(event);
+        });
+
+        block.addEventListener('touchmove', function(e) {
+            e.preventDefault(); // Prevent default touch behavior
+            const touch = e.touches[0];
+            const event = new MouseEvent('mousemove', {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            this.dispatchEvent(event);
+        });
+
+        block.addEventListener('touchend', function(e) {
+            e.preventDefault(); // Prevent default touch behavior
+            const event = new MouseEvent('mouseup', {
+                view: window,
+                bubbles: true,
+                cancelable: true
+            });
+            this.dispatchEvent(event);
+        });
     });
 
     gameCanvas.addEventListener("dragover", function (e) {
-        e.preventDefault(); // Allow drop
+        e.preventDefault();
     });
 
     gameCanvas.addEventListener("drop", function (e) {
@@ -268,7 +292,43 @@ document.addEventListener("DOMContentLoaded", function () {
         placeBlock(shape, x, y);
     });
 
-    // Event listeners for buttons
+    // Add touch event listeners for mobile support on the canvas
+    gameCanvas.addEventListener('touchstart', function(e) {
+        e.preventDefault(); // Prevent default touch behavior
+        const touch = e.touches[0];
+        const event = new MouseEvent('mousedown', {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        gameCanvas.dispatchEvent(event);
+    });
+
+    gameCanvas.addEventListener('touchmove', function(e) {
+        e.preventDefault(); // Prevent default touch behavior
+        const touch = e.touches[0];
+        const event = new MouseEvent('mousemove', {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        gameCanvas.dispatchEvent(event);
+    });
+
+    gameCanvas.addEventListener('touchend', function(e) {
+        e.preventDefault(); // Prevent default touch behavior
+        const event = new MouseEvent('mouseup', {
+            view: window,
+            bubbles: true,
+            cancelable: true
+        });
+        gameCanvas.dispatchEvent(event);
+    });
+
     startButton.addEventListener("click", startGame);
     quitButton.addEventListener("click", quitGame);
 });

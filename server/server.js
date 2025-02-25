@@ -86,6 +86,8 @@ async function handleWebSocketMessage(data, ws) {
     } else if (data.type === "updateScore") {
         const leaderboard = await updateLeaderboard(data.name, data.qid, data.score);
         broadcastLeaderboard(leaderboard);
+    } else {
+        ws.send(JSON.stringify({ type: "error", message: "Unknown message type." }));
     }
 }
 

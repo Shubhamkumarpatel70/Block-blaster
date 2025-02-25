@@ -38,57 +38,57 @@
     </div>
 
     <script>
-      async function fetchLeaderboard() {
-        const leaderboard = document.getElementById("leaderboard");
-        leaderboard.innerHTML = "<p class='text-center text-gray-400'>Loading...</p>"; // Show loading state
+        async function fetchLeaderboard() {
+            const leaderboard = document.getElementById("leaderboard");
+            leaderboard.innerHTML = "<p class='text-center text-gray-400'>Loading...</p>"; // Show loading state
 
-        try {
-            const response = await fetch("/api/leaderboard");
-            if (!response.ok) throw new Error("Failed to fetch leaderboard");
+            try {
+                const response = await fetch("/api/leaderboard");
+                if (!response.ok) throw new Error("Failed to fetch leaderboard");
 
-            const leaderboardData = await response.json();
-            leaderboardData.sort((a, b) => b.score - a.score);
+                const leaderboardData = await response.json();
+                leaderboardData.sort((a, b) => b.score - a.score);
 
-            // Create a temporary leaderboard to hold the new data
-            const newLeaderboardContent = leaderboardData.map((player, index) => {
-                const isTop = index === 0 ? "border-yellow-400" : "border-gray-600";
-                const highlight = index === 0 ? "bg-yellow-500 text-black font-bold" : "bg-gray-700";
+                // Create a temporary leaderboard to hold the new data
+                const newLeaderboardContent = leaderboardData.map((player, index) => {
+                    const isTop = index === 0 ? "border-yellow-400" : "border-gray-600";
+                    const highlight = index === 0 ? "bg-yellow-500 text-black font-bold" : "bg-gray-700";
 
-                return `
-                    <div class="flex flex-col md:flex-row justify-between items-center p-3 rounded border ${isTop} ${highlight}">
-                        <div class="flex flex-col mb-2 md:mb-0">
-                            <h2 class="text-lg md:text-xl">#${index + 1} ${player.name}</h2>
-                            <p class="text-sm text-gray-300">Q.ID: ${player.qid}</p>
+                    return `
+                        <div class="flex flex-col md:flex-row justify-between items-center p-3 rounded border ${isTop} ${highlight}">
+                            <div class="flex flex-col mb-2 md:mb-0">
+                                <h2 class="text-lg md:text-xl">#${index + 1} ${player.name}</h2>
+                                <p class="text-sm text-gray-300">Q.ID: ${player.qid}</p>
+                            </div>
+                            <span class="text-xl font-bold">${player.score}</span>
                         </div>
-                        <span class="text-xl font-bold">${player.score}</span>
-                    </div>
-                `;
-            }).join('');
+                    `;
+                }).join('');
 
-            // Add fade-out class to the leaderboard for exit animation
-            leaderboard.classList.add('fade-exit');
-            setTimeout(() => {
-                leaderboard.innerHTML = newLeaderboardContent; // Update leaderboard content
-                leaderboard.classList.remove('fade-exit'); // Remove fade-out class
-
-                // Trigger fade-in effect
-                leaderboard.classList.add('fade-enter');
+                // Add fade-out class to the leaderboard for exit animation
+                leaderboard.classList.add('fade-exit');
                 setTimeout(() => {
-                    leaderboard.classList.remove('fade-enter'); // Remove fade-in class after animation
-                }, 500);
-            }, 500); // Wait for fade-out animation to complete before updating content
+                    leaderboard.innerHTML = newLeaderboardContent; // Update leaderboard content
+                    leaderboard.classList.remove('fade-exit'); // Remove fade-out class
 
-        } catch (error) {
-            console.error("Error fetching leaderboard:", error);
-            leaderboard.innerHTML = "<p class='text-center text-red-500'>Failed to load leaderboard.</p>";
+                    // Trigger fade-in effect
+                    leaderboard.classList.add('fade-enter');
+                    setTimeout(() => {
+                        leaderboard.classList.remove('fade-enter'); // Remove fade-in class after animation
+                    }, 500);
+                }, 500); // Wait for fade-out animation to complete before updating content
+
+            } catch (error) {
+                console.error("Error fetching leaderboard:", error);
+                leaderboard.innerHTML = "<p class='text-center text-red-500'>Failed to load leaderboard.</p>";
+            }
         }
-      }
 
-      // Load Leaderboard when Page Opens
-      fetchLeaderboard();
+        // Load Leaderboard when Page Opens
+        fetchLeaderboard();
 
-      // Refresh Every 10 Seconds for Live Updates
-      setInterval(fetchLeaderboard, 10000);
+        // Refresh Every 10 Seconds for Live Updates
+        setInterval(fetchLeaderboard, 10000);
     </script>
 
 </body>
