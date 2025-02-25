@@ -120,74 +120,107 @@
 
     <script src="script.js"></script>
     <script>
-        const ws = new WebSocket("ws://block-blaster.onrender.com"); // Adjust according to your server
+        document.addEventListener("DOMContentLoaded", function () {
+            const ws = new WebSocket("ws://block-blaster.onrender.com"); // Adjust according to your server
 
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data);
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
 
-            if (data.type === "leaderboard") {
-                updateLeaderboard(data.leaderboard);
+                if (data.type === "leaderboard") {
+                    updateLeaderboard(data.leaderboard);
+                }
+            };
+
+            function updateLeaderboard(leaderboard) {
+                const leaderboardList = document.getElementById("leaderboard-list");
+                leaderboardList.innerHTML = ""; // Clear existing entries
+
+                leaderboard.forEach((player, index) => {
+                    const row = document.createElement("tr");
+                    row.classList.add("leaderboard-row");
+                    row.innerHTML = `
+                        <td class="py-2 px-4">${player.position}</td>
+                        <td class="py-2 px-4">${player.name}</td>
+                        <td class="py-2 px-4">${player.score}</td>
+                    `;
+                    leaderboardList.appendChild(row);
+                    
+                    // Trigger visibility animation with staggered delay
+                    setTimeout(() => {
+                        row.classList.add("visible");
+                    }, 50 * index);
+                });
             }
-        };
 
-        function updateLeaderboard(leaderboard) {
-            const leaderboardList = document.getElementById("leaderboard-list");
-            leaderboardList.innerHTML = ""; // Clear existing entries
-
-            leaderboard.forEach((player, index) => {
-                const row = document.createElement("tr");
-                row.classList.add("leaderboard-row");
-                row.innerHTML = `
-                    <td class="py-2 px-4">${player.position}</td>
-                    <td class="py-2 px-4">${player.name}</td>
-                    <td class="py-2 px-4">${player.score}</td>
-                `;
-                leaderboardList.appendChild(row);
-                
-                // Trigger visibility animation with staggered delay
-                setTimeout(() => {
-                    row.classList.add("visible");
-                }, 50 * index);
-            });
-        }
-
-        // Add touch event listeners for mobile support
-        document.querySelectorAll('.block').forEach(block => {
-            block.addEventListener('touchstart', function(e) {
-                e.preventDefault(); // Prevent default touch behavior
-                const touch = e.touches[0];
-                const event = new MouseEvent('mousedown', {
-                    view: window,
-                    bubbles: true,
-                    cancelable: true,
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
+            // Add touch event listeners for mobile support
+            document.querySelectorAll('.block').forEach(block => {
+                block.addEventListener('touchstart', function(e) {
+                    e.preventDefault(); // Prevent default touch behavior
+                    const touch = e.touches[0];
+                    const event = new MouseEvent('mousedown', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.dispatchEvent(event);
                 });
-                this.dispatchEvent(event);
+
+                block.addEventListener('touchmove', function(e) {
+                    e.preventDefault(); // Prevent default touch behavior
+                    const touch = e.touches[0];
+                    const event = new MouseEvent('mousemove', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.dispatchEvent(event);
+                });
+
+                block.addEventListener('touchend', function(e) {
+                    e.preventDefault(); // Prevent default touch behavior
+                    const event = new MouseEvent('mouseup', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    this.dispatchEvent(event);
+                });
             });
 
-            block.addEventListener('touchmove', function(e) {
-                e.preventDefault(); // Prevent default touch behavior
-                const touch = e.touches[0];
-                const event = new MouseEvent('mousemove', {
-                    view: window,
-                    bubbles: true,
-                    cancelable: true,
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                this.dispatchEvent(event);
-            });
+            // Event listeners for buttons
+            document.getElementById("startButton").addEventListener("click", startGame);
+            document.getElementById("quitButton").addEventListener("click", quitGame);
 
-            block.addEventListener('touchend', function(e) {
-                e.preventDefault(); // Prevent default touch behavior
-                const event = new MouseEvent('mouseup', {
-                    view: window,
-                    bubbles: true,
-                    cancelable: true
-                });
-                this.dispatchEvent(event);
-            });
+            function startGame() {
+                const playerName = document.getElementById("playerName").value.trim();
+                const playerId = document.getElementById("playerId").value.trim();
+
+                if (playerName === "" || playerId === "") {
+                    alert("Please enter your name and Q.ID!");
+                    return;
+                }
+
+                document.getElementById("playerDisplay").innerText = playerName;
+                document.getElementById("playerIdDisplay").innerText = playerId;
+
+                ws.send(JSON.stringify({
+                    type: "registerPlayer",
+                    name: playerName,
+                    qid: playerId
+                }));
+
+                document.getElementById("playerEntry").style.display = "none";
+                document.getElementById("gameContainer").style.display = "block";
+            }
+
+            function quitGame() {
+                alert("You have exited the game.");
+                window.location.href = "about:blank";
+            }
         });
     </script>
 </body>
